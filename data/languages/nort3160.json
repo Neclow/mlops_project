@@ -1,0 +1,29 @@
+{
+    "Danish": {
+        "fleurs-r": "da_dk",
+        "common_voice_17_0": "da",
+        "glottolog": "dani1285"
+    },
+    "Faroese": {
+        "ravnursson": "fo",
+        "glottolog": "faro1244"
+    },
+    "Icelandic": {
+        "fleurs-r": "is_is",
+        "common_voice_17_0": "is",
+        "glottolog": "icel1247"
+    },
+    "Norwegian Bokmaal": {
+        "fleurs-r": "nb_no",
+        "glottolog": "norw1258"
+    },
+    "Norwegian Nynorsk": {
+        "common_voice_17_0": "nn-NO",
+        "glottolog": "norw1262"
+    },
+    "Swedish": {
+        "fleurs-r": "sv_se",
+        "common_voice_17_0": "sv-SE",
+        "glottolog": "swed1254"
+    }
+}
