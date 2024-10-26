@@ -48,7 +48,7 @@ class BaseDataset(Dataset):
         self.language_metadata = pd.read_csv(
             f"{self.data_dir}/languages/{self.dataset}.csv"
         )
-        languages = self.language_metadata.index.to_list()
+        languages = self.language_metadata.language.to_list()
 
         # Label encoding
         self.label_dir = f"{self.data_dir}/labels"
@@ -106,12 +106,11 @@ class AudioDataset(BaseDataset):
         # pylint: disable=unused-variable
         subdataset, language_code = wav_path.split("/")[2:4]
 
-        label = self.language_metadata.query(
+        language = self.language_metadata.query(
             f"`{subdataset}` == @language_code"
         ).language.item()
         # pylint: enable=unused-variable
 
-        language = Path(wav_path).parents[3].stem
         label = self.label_encoder.encode_label(language)
 
         if self.transform:

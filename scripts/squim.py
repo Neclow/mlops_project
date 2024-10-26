@@ -1,3 +1,9 @@
+"""
+Reference-free speech quality assessment using torchaudio SQUIM
+
+Adapted from https://pytorch.org/audio/main/tutorials/squim_tutorial.html
+"""
+
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from glob import glob
 
