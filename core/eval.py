@@ -178,6 +178,7 @@ def main():
     wandb_logger = WandbLogger(
         project=f"mlops_project_eval_{args.dataset}", save_dir=eval_dir
     )
+
     wandb_logger.experiment.config.update(
         {
             "model_id": args.model_id,
