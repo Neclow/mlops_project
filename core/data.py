@@ -8,12 +8,15 @@ from abc import abstractmethod
 from glob import glob
 from pathlib import Path
 
+import pandas as pd
+
 from speechbrain.dataio.encoder import CategoricalEncoder
 from torch.utils.data import Dataset
 
 
 class BaseDataset(Dataset):
-    """Base dataset for this project
+    """
+    Base dataset for this project
 
     Parameters
     ----------
@@ -21,10 +24,8 @@ class BaseDataset(Dataset):
         Name of a dataset. Example: `fleurs`.
     subset : str
         Data subset (`train`, `dev`, `test`).
-    root_dir : str
-        Root folder path for analyses
-    save_dir : str, optional
-        Path to save artefactsl, by default "data"
+    data_dir : str
+        Path to main data folder path
     transform : callable, optional
         Optional transform to be applied on a sample, by default None
     target_transform : callable, optional
@@ -35,33 +36,32 @@ class BaseDataset(Dataset):
         self,
         dataset,
         subset,
-        root_dir,
-        save_dir="data",
+        data_dir="data",
         transform=None,
         target_transform=None,
     ):
+        # Base parameters
         self.dataset = dataset
         self.subset = subset
-        self.root_dir = root_dir
+        self.data_dir = data_dir
 
-        self.data_folder = f"{self.root_dir}/datasets/{self.dataset}"
+        # Language metadata
+        self.language_metadata = pd.read_csv(
+            f"{self.data_dir}/languages/{self.dataset}.csv"
+        )
+        languages = self.language_metadata.index.to_list()
 
-        with open(
-            f"{self.root_dir}/languages/{self.dataset}.json", "r", encoding="utf-8"
-        ) as f:
-            languages = json.load(f)
-
-        self.save_dir = save_dir
-
-        os.makedirs(self.save_dir, exist_ok=True)
-
+        # Label encoding
+        self.label_dir = f"{self.data_dir}/labels"
+        os.makedirs(self.label_dir, exist_ok=True)
         self.label_encoder = CategoricalEncoder()
         self.label_encoder.load_or_create(
-            path=os.path.join(self.save_dir, f"{self.dataset}_lang_encoder.txt"),
-            from_iterables=[list(languages.keys())],
+            path=os.path.join(self.label_dir, f"{self.dataset}_lang_encoder.txt"),
+            from_iterables=[languages],
             output_key="lang_id",
         )
 
+        # Data transforms
         self.transform = transform
         self.target_transform = target_transform
 
@@ -71,23 +71,12 @@ class BaseDataset(Dataset):
 
 
 class AudioDataset(BaseDataset):
-    """Dataset for audio samples
-
-    Parameters
-    ----------
-    processor : core.upstream.AudioProcessor
-        an object with a ```process``` function
-    max_duration : float, optional
-        Maximum audio duration, by default None
-    ext : str, optional
-        Audio file extension, by default "wav"
-    """
 
     def __init__(
         self,
         processor,
         max_duration=None,
-        ext="wav",
+        exts=("wav", "mp3"),
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -99,19 +88,29 @@ class AudioDataset(BaseDataset):
         else:
             self.max_length = int(max_duration * self.processor.sr)
 
-        self.ext = ext
-        self.audio_file_list = glob(
-            f"{self.data_folder}/*/*/audio/{self.subset}/*.{ext}"
-        )
+        base_pattern = f"{self.data_dir}/**/audio/{self.subset}"
+
+        self.audio_file_list = []
+
+        for ext in exts:
+            self.audio_file_list.extend(glob(f"{base_pattern}/*.{ext}", recursive=True))
 
     def __len__(self):
         return len(self.audio_file_list)
 
     def __getitem__(self, idx):
-        # Path: root_dir/datasets/name_of_dataset/language/language/audio/subset/*.wav
+        # Path: data/datasets/subdataset/language_code/language_code/audio/subset/fname.wav
         wav_path = self.audio_file_list[idx]
 
         x = self.processor(wav_path)
+
+        # pylint: disable=unused-variable
+        subdataset, language_code = wav_path.split("/")[2:4]
+
+        label = self.language_metadata.query(
+            f"`{subdataset}` == @language_code"
+        ).language.item()
+        # pylint: enable=unused-variable
 
         language = Path(wav_path).parents[3].stem
         label = self.label_encoder.encode_label(language)
@@ -125,17 +124,18 @@ class AudioDataset(BaseDataset):
         return {"input": x, "label": label}
 
 
-def load_data(dataset, root_dir, save_dir, **kwargs):
-    """Load audio data
+def load_data(dataset, data_dir, **kwargs):
+    """
+    Load audio data
 
     Parameters
     ----------
     dataset : str
         Name of a dataset. Example: `fleurs`.
-    root_dir : str
-        Root folder path for analyses
-    save_dir : str, optional
-        Path to save artefacts
+    data_dir : str
+        Path to main data folder path
+    **kwargs
+        Optional arguments passed to AudioDataset
 
     Returns
     -------
@@ -149,24 +149,21 @@ def load_data(dataset, root_dir, save_dir, **kwargs):
     train_dataset = AudioDataset(
         subset="train",
         dataset=dataset,
-        root_dir=root_dir,
-        save_dir=save_dir,
+        data_dir=data_dir,
         **kwargs,
     )
 
     valid_dataset = AudioDataset(
         subset="dev",
         dataset=dataset,
-        root_dir=root_dir,
-        save_dir=save_dir,
+        data_dir=data_dir,
         **kwargs,
     )
 
     test_dataset = AudioDataset(
         subset="test",
         dataset=dataset,
-        root_dir=root_dir,
-        save_dir=save_dir,
+        data_dir=data_dir,
         **kwargs,
     )
 

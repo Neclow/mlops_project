@@ -180,7 +180,8 @@ tmp/
 # Numpy tensors
 *.npy
 
-# My draft notebooks
+# My drafts
+tmp/
 drafts*.ipynb
 
 # W&B
@@ -192,3 +193,6 @@ logs/
 *.log.permeaning
 
 lightning_logs/
+
+# Datasets
+data/nort3160
