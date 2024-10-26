@@ -77,8 +77,12 @@ if __name__ == "__main__":
 
             stoi, pesq, si_sdr = objective_model(x[0:1])
 
-        sq_data[file] = {"stoi": stoi, "pesq": pesq, "si_sdr": si_sdr}
+        sq_data[file] = {
+            "stoi": stoi.cpu().item(),
+            "pesq": pesq.cpu().item(),
+            "si_sdr": si_sdr.cpu().item(),
+        }
 
     sq_df = pd.DataFrame.from_dict(sq_data, orient="index")
 
-    sq_df.to_csv(f"data/stats/speech_quality_{args.input_dataset}")
+    sq_df.to_csv(f"data/stats/speech_quality_{args.input_dataset}.csv")

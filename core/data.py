@@ -55,7 +55,7 @@ class BaseDataset(Dataset):
         os.makedirs(self.label_dir, exist_ok=True)
         self.label_encoder = CategoricalEncoder()
         self.label_encoder.load_or_create(
-            path=os.path.join(self.label_dir, f"{self.dataset}_lang_encoder.txt"),
+            path=os.path.join(self.label_dir, f"{self.dataset}.txt"),
             from_iterables=[languages],
             output_key="lang_id",
         )

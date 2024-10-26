@@ -1,0 +1,7 @@
+'Danish' => 0
+'Faroese' => 1
+'Icelandic' => 2
+'Norwegian' => 3
+'Swedish' => 4
+================
+'starting_index' => 0
