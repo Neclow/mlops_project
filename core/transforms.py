@@ -1,16 +1,31 @@
+"""Data transforms"""
+
 import random
 
 import torch
 
+from torchaudio.transforms import Vad
+
 
 class Pad(torch.nn.Module):
-    def __init__(self, sample_rate, max_duration, direction="random"):
-        super().__init__()
-        self.sample_rate = sample_rate
-        self.max_duration = max_duration
-        self.max_length = int(self.sample_rate * self.max_duration)
+    def __init__(self, sr, max_duration, direction="random"):
+        """
+        Audio zero-padding
 
-        # TODO: add bidirectional padding mode
+        Parameters
+        ----------
+        sr : int
+            Sample rate
+        max_duration : float
+            Max audio duration (in s)
+        direction : str, optional
+            Padding direction, by default "random"
+        """
+        super().__init__()
+        self.sr = sr
+        self.max_duration = max_duration
+        self.max_length = int(self.sr * self.max_duration)
+
         assert direction in ("left", "right", "random")
         self.direction = direction
 
@@ -35,13 +50,25 @@ class Pad(torch.nn.Module):
 
 
 class Trim(torch.nn.Module):
-    def __init__(self, sample_rate, max_duration, direction="random"):
-        super().__init__()
-        self.sample_rate = sample_rate
-        self.max_duration = max_duration
-        self.max_length = int(self.sample_rate * self.max_duration)
+    """
+    Audio trimming
 
-        # TODO: add bidirectional trimming mode
+    Parameters
+    ----------
+    sr : int
+        Sample rate
+    max_duration : float
+        Max audio duration (in s)
+    direction : str, optional
+        Trimming direction, by default "random"
+    """
+
+    def __init__(self, sr, max_duration, direction="random"):
+        super().__init__()
+        self.sr = sr
+        self.max_duration = max_duration
+        self.max_length = int(self.sr * self.max_duration)
+
         assert direction in ("left", "right", "random")
         self.direction = direction
 
@@ -64,3 +91,26 @@ class Trim(torch.nn.Module):
             x = x[start:stop]
 
         return x
+
+
+def load_transforms(sr, max_duration, vad=False):
+    transforms = []
+
+    if vad:
+        transforms.append(Vad(sample_rate=sr))
+
+    transforms.extend(
+        [
+            Trim(
+                sr=sr,
+                max_duration=max_duration,
+            ),
+            Pad(
+                sr=sr,
+                max_duration=max_duration,
+                direction="right",
+            ),
+        ]
+    )
+
+    return torch.nn.Sequential(*transforms)

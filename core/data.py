@@ -1,6 +1,5 @@
 """Dataset classes"""
 
-import json
 import os
 import sys
 

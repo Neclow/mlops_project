@@ -1,3 +1,5 @@
+"""Audio loaders/processors"""
+
 import librosa
 import torch
 import torchaudio
@@ -38,10 +40,7 @@ class HuggingfaceProcessor(AudioProcessor):
 
         x = self.processor(x, sampling_rate=self.sr, return_tensors="pt")
 
-        if "w2v-bert" in self.model_id:
-            x = x["input_features"][0]
-        else:
-            x = x.input_values[0]
+        x = x.input_values[0]
 
         return x
 
@@ -53,9 +52,9 @@ class SpeechbrainProcessor(AudioProcessor):
         self.audio_normalizer = AudioNormalizer(sample_rate=self.sr)
 
     def process(self, wav_path):
-        x, _ = torchaudio.load(wav_path, channels_first=False)
+        x, sr = torchaudio.load(wav_path, channels_first=False)
 
-        x = self.audio_normalizer(x, self.sr)
+        x = self.audio_normalizer(x, sr)
 
         return x
 
@@ -68,7 +67,8 @@ class WhisperProcessor(AudioProcessor):
 
 
 def load_processor(model_id, sr, cache_dir=None) -> AudioProcessor:
-    """Load an audio data processor (to be used in AudioDataset)
+    """
+    Load an audio data processor (to be used in AudioDataset)
 
     (Audio normalisation, spectrograms...)
 
@@ -86,7 +86,7 @@ def load_processor(model_id, sr, cache_dir=None) -> AudioProcessor:
     AudioProcessor
         an object with a ```process``` function
     """
-    if any(_ in model_id for _ in ["xls-r", "w2v-bert", "mms"]):
+    if any(_ in model_id for _ in ["xls-r", "mms"]):
         processor = HuggingfaceProcessor(model_id, sr=sr, cache_dir=cache_dir)
     elif "speechbrain" in model_id:
         processor = SpeechbrainProcessor(sr=sr)

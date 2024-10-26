@@ -10,8 +10,9 @@ import soundfile as sf
 from datasets import load_dataset
 from tqdm import tqdm
 
+from core.config import SAMPLE_RATE
+
 MAX_SAMPLES = 10000
-SAMPLE_RATE = 16000
 
 
 def parse_args():

@@ -2,13 +2,14 @@ import logging
 
 from abc import ABC, abstractmethod
 
+import nemo.collections.asr as nemo_asr
 import torch
 import torch.nn.functional as F
 import whisper
 
 from speechbrain.inference.classifiers import EncoderClassifier
 from torch import nn
-from transformers import Wav2Vec2BertModel, Wav2Vec2Model
+from transformers import Wav2Vec2Model
 
 logging.getLogger("nemo_logger").setLevel(logging.ERROR)
 
@@ -25,9 +26,6 @@ class BaseFeatureExtractor(nn.Module, ABC):
 
     @abstractmethod
     def forward(self, x):
-        raise NotImplementedError
-
-    def get_hidden_states(self, x):
         raise NotImplementedError
 
 
@@ -96,7 +94,7 @@ class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
     def __init__(
         self,
         model_id,
-        finetuned=False,
+        finetuned=True,
         cache_dir=None,
     ):
         super().__init__(model_id)
@@ -123,11 +121,6 @@ class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
 
             feature_extractor.freeze_feature_encoder()
             emb_dim = 1280
-        elif "w2v-bert" in self.model_id:
-            feature_extractor = Wav2Vec2BertModel.from_pretrained(
-                self.model_id, cache_dir=cache_dir
-            )
-            emb_dim = 1024
         else:
             raise ValueError(f"Unknown model ID: {self.model_id}")
 
@@ -137,24 +130,45 @@ class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
     def forward(self, x):
         return self.feature_extractor(x).last_hidden_state
 
-    def get_hidden_states(self, x):
-        _, *hidden_state_list = self.feature_extractor(
-            x, output_hidden_states=True
-        ).hidden_states
 
-        # B x n_layers X n_chunks x emb_dim
-        hidden_states = torch.stack(hidden_state_list, dim=1)
+class NeMoFeatureExtractor(BaseFeatureExtractor):
+    def __init__(self, model_id, cache_dir=None):
+        super().__init__(model_id)
 
-        return hidden_states
+        if cache_dir is not None:
+            cache_dir = f"{cache_dir}/NeMo"
+        else:
+            cache_dir = "~/.cache/NeMo"
 
-    def get_attentions(self, x):
-        # B x n_layers x n_heads x n_chunks x n_chunks
-        attentions = torch.stack(
-            self.feature_extractor(x, output_attentions=True).attentions,
-            dim=1,
+        self.load(cache_dir)
+
+    def load(self, cache_dir):
+        if self.model_id == "NeMo_ambernet":
+            model_name = self.model_id.split("_")[-1]
+
+            feature_extractor = nemo_asr.models.EncDecSpeakerLabelModel.restore_from(
+                restore_path=f"{cache_dir}/{model_name}.nemo"
+            )
+
+            feature_extractor.freeze()
+
+            emb_dim = feature_extractor.decoder.final.in_features
+        else:
+            raise ValueError(f"Unknown model ID: {self.model_id}")
+
+        self.feature_extractor = feature_extractor
+        self.emb_dim = emb_dim
+
+    def forward(self, x):
+        # Input shape: B x T
+        _, emb = self.feature_extractor(
+            input_signal=x,
+            input_signal_length=torch.tensor([x.shape[1]], device=x.device),
         )
 
-        return attentions
+        # Output shape: B x D
+
+        return emb
 
 
 class SpeechbrainFeatureExtractor(BaseFeatureExtractor):
@@ -184,32 +198,6 @@ class SpeechbrainFeatureExtractor(BaseFeatureExtractor):
 
     def forward(self, x):
         return self.feature_extractor.encode_batch(x)
-
-    def get_hidden_states(self, x):
-        """
-        Forward method of speechbrain.lobes.models.ECAPA_TDNN with addition of hidden_states
-
-        Copyright (c) 2020 Speechbrain
-        """
-        mods = self.feature_extractor.mods
-
-        wav_lens = torch.ones(x.shape[0], device=x.device)
-
-        x = mods.compute_features(x)
-
-        x = mods.mean_var_norm(x, wav_lens)
-
-        x = x.transpose(1, 2)
-
-        xl = []
-
-        for block in mods.embedding_model.blocks:
-            x = block(x)
-            xl.append(x)
-
-        hidden_states = torch.stack(xl[1:], dim=1).transpose(2, 3)
-
-        return hidden_states
 
 
 class WhisperFeatureExtractor(BaseFeatureExtractor):
@@ -269,7 +257,7 @@ class WhisperFeatureExtractor(BaseFeatureExtractor):
         """
         Forward method of whisper.AudioEncoder with addition of hidden_states
 
-        Copyright (c) 2022 OpenAI
+        Adapted from https://github.com/openai/whisper/blob/cdb81479623391f0651f4f9175ad986e85777f31/whisper/model.py#L188
         """
         encoder = self.feature_extractor.encoder
 
@@ -299,7 +287,7 @@ class WhisperFeatureExtractor(BaseFeatureExtractor):
         """
         Forward method of whisper.TextDecoder with addition of hidden_states
 
-        Copyright (c) 2022 OpenAI
+        Adapted from https://github.com/openai/whisper/blob/cdb81479623391f0651f4f9175ad986e85777f31/whisper/model.py#L227
         """
         n_audio = x.shape[0]
 
@@ -337,29 +325,9 @@ class WhisperFeatureExtractor(BaseFeatureExtractor):
 
         return xt
 
-    def get_hidden_states(self, x, kv_cache=None):
-        x = self.lms(x)
-
-        x, encoder_hidden_states = self.encode(x)
-
-        _, decoder_hidden_states = self.decode(x, kv_cache=kv_cache)
-
-        # encoder: B x n_layers x n_chunks x emb_dim
-        hidden_states = torch.cat(
-            [
-                encoder_hidden_states,
-                decoder_hidden_states.expand(
-                    -1, -1, encoder_hidden_states.shape[2], -1
-                ),
-            ],
-            dim=1,
-        )
-
-        return hidden_states
-
 
 def load_feature_extractor(
-    model_id, cache_dir=None, finetuned=False, device="cpu"
+    model_id, cache_dir=None, device="cpu", finetuned=True
 ) -> BaseFeatureExtractor:
     """Load a feature extractor (to be used downstream)
 
@@ -369,10 +337,10 @@ def load_feature_extractor(
         Model ID (see model_ids)
     cache_dir : str, optional
         Path to the folder where cached files are stored, by default None
-    finetuned : bool, optional
-        Whether to use a fine-tuned XLS-R or not, by default False
     device : str, optional
         Device on which a torch.Tensor is or will be allocated, by default "cpu"
+    finetuned : bool, optional
+        Whether to use a fine-tuned XLS-R or not, by default True
 
     Returns
     -------
@@ -387,6 +355,8 @@ def load_feature_extractor(
         feature_extractor = SpeechbrainFeatureExtractor(
             model_id, cache_dir=cache_dir, device=device
         )
+    elif "NeMo" in model_id:
+        feature_extractor = NeMoFeatureExtractor(model_id, cache_dir=cache_dir)
     elif "whisper" in model_id:
         feature_extractor = WhisperFeatureExtractor(model_id, cache_dir=cache_dir)
     else:
