@@ -155,7 +155,7 @@ def main():
     else:
         raise NotImplementedError
 
-    print("Loading data..")
+    print("Loading data...")
     train_dataset, valid_dataset, test_dataset = load_data(**dataset_args)
     train_loader = DataLoader(train_dataset, shuffle=True, **loader_args)
     valid_loader = DataLoader(valid_dataset, shuffle=False, **loader_args)
@@ -195,7 +195,7 @@ def main():
         accelerator = "cpu"
         devices = "auto"
 
-    print("Start evaluation!")
+    print("Start training!")
     trainer = Trainer(
         accelerator=accelerator,
         devices=devices,
