@@ -9,13 +9,11 @@ import requests
 
 from tqdm import tqdm
 
-from core.config import SAMPLE_RATE
-
 TIMEOUT = 10
 
 
 def parse_args():
-    """Parse arguments for Ravnursson data preparation"""
+    """Parse arguments for Common Voice data preparation"""
 
     parser = ArgumentParser(
         formatter_class=ArgumentDefaultsHelpFormatter,
@@ -24,9 +22,6 @@ def parse_args():
         "dataset_dir",
         type=str,
         help="Output dataset folder",
-    )
-    parser.add_argument(
-        "-sr", "--sr", default=SAMPLE_RATE, type=int, help="Sample rate"
     )
     return parser.parse_args()
 
@@ -61,7 +56,7 @@ def download(dataset_dir, hf_token):
 
     for lang in langs:
         print(lang)
-        lang_folder = f"data/{dataset_dir}/{lang}/{lang}"
+        lang_folder = f"data/{dataset_dir}/common_voice_17_0/{lang}/{lang}"
         audio_folder = f"{lang_folder}/audio"
         os.makedirs(lang_folder, exist_ok=True)
         os.makedirs(audio_folder, exist_ok=True)

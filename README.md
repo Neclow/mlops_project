@@ -30,6 +30,16 @@ TODO
 
 ## Data
 
+### Download
+
+Run the ```prepare``` scripts in ```scripts```:
+
+```bash
+python -m prepare_common_voice_17_0 nort3160
+python -m prepare_fleurs-r nort3160
+python -m prepare_ravnursson nort3160
+```
+
 ### Languages
 
 The .json file describes common abbreviations/codes for languages. For each language, the dictionary values always contain the full name (as described in Glottolog), as well as its glottocode ("glottolog" field).
