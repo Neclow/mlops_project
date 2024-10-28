@@ -172,6 +172,14 @@ def main():
 
     torch.compile(lit_mlp)
 
+    # TODO: make it more flexible for multi-GPU
+    if "cuda" in args.device:
+        accelerator = "gpu"
+        devices = [int(args.device.split(":")[-1])]
+    else:
+        accelerator = "cpu"
+        devices = "auto"
+
     # W & B monitoring and logging
     eval_dir = f"{args.data_dir}/eval"
     os.makedirs(eval_dir, exist_ok=True)
@@ -187,13 +195,10 @@ def main():
         }
     )
 
-    # TODO: make it more flexible for multi-GPU
-    if "cuda" in args.device:
-        accelerator = "gpu"
-        devices = [int(args.device.split(":")[-1])]
-    else:
-        accelerator = "cpu"
-        devices = "auto"
+    # Callbacks
+    checkpoint_callback = ModelCheckpoint(
+        monitor="valid_loss", mode="min", save_last=True
+    )
 
     print("Start training!")
     trainer = Trainer(
@@ -202,12 +207,11 @@ def main():
         max_epochs=args.n_epochs,
         enable_model_summary=True,
         callbacks=[
-            ModelCheckpoint(monitor="valid_loss", mode="min", save_last=True),
+            checkpoint_callback,
             TQDMProgressBar(),
         ],
         logger=wandb_logger,
     )
-
     trainer.fit(
         model=lit_mlp,
         train_dataloaders=train_loader,
