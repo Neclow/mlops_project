@@ -22,8 +22,9 @@ def parse_args():
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "output_dataset",
+        "dataset_dir",
         type=str,
+        default="nort3160",
         help="Output dataset folder",
     )
     parser.add_argument(
@@ -46,7 +47,7 @@ if __name__ == "__main__":
     # Download dataset
     ravnursson = load_dataset("carlosdanielhernandezmena/ravnursson_asr")
 
-    output_folder = f"data/{args.output_dataset}/fo/fo"
+    output_folder = f"data/{args.dataset_dir}/ravnursson/fo/fo"
 
     audio_folder = f"{output_folder}/audio"
 
