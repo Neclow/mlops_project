@@ -22,11 +22,13 @@ python -m core.train nort3160 NeMo_ambernet speech --n-epochs 3 --max-duration 1
 
 Or follow the ```model_development.ipynb``` notebook.
 
-## Model deployment
+### Model deployment
 
-TODO
+TODO (FastAPI)
 
-## Monitoring and logging
+### Monitoring and logging
+
+TODO (Evidently)
 
 ## Data
 
