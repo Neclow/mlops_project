@@ -1,3 +1,0 @@
-[submodule "extern/glottolog"]
-	path = extern/glottolog
-	url = https://github.com/glottolog/glottolog
