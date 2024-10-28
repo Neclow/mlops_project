@@ -1,3 +1,5 @@
+"""FLEURS-R data preparation"""
+
 import os
 import subprocess
 import warnings
@@ -10,12 +12,11 @@ import requests
 
 from tqdm import tqdm
 
-TIMEOUT = 10
-
+# Languages
 langs = ["da_dk", "is_is", "nb_no", "sv_se"]
-
-ROOT_FOLDER = "/home/common/speech_phylo/datasets/fleurs-r"
-
+# Max time before timeout
+TIMEOUT = 10
+# Root URL
 ROOT_URL = "https://huggingface.co/datasets/google/fleurs-r/resolve/main/data"
 
 
@@ -35,7 +36,7 @@ def parse_args():
 
 def unzip(dataset_dir):
     """Example code to decompress all the downloaded tar.gz files"""
-    tar_files = glob(f"data/{dataset_dir}/*/*/audio/*/*.tar.gz")
+    tar_files = glob(f"data/{dataset_dir}/fleurs-r/*/*/audio/*/*.tar.gz")
     for tf in tqdm(tar_files):
         tf_parent = str(Path(tf).parent)
         commands = (

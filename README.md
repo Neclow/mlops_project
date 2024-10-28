@@ -36,7 +36,7 @@ Run the ```prepare``` scripts in ```scripts```:
 
 ```bash
 python -m prepare_common_voice_17_0 nort3160
-python -m prepare_fleurs-r nort3160
+python -m prepare_fleurs nort3160
 python -m prepare_ravnursson nort3160
 ```
 

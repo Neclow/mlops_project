@@ -1,3 +1,5 @@
+"""Common Voice 17.0 data preparation"""
+
 import os
 import subprocess
 
@@ -9,7 +11,20 @@ import requests
 
 from tqdm import tqdm
 
+# Languages
+langs = [
+    "da",
+    "is",
+    "nn-NO",
+    "sv-SE",
+]
+
+# Max time before timeout
 TIMEOUT = 10
+# Root URL
+ROOT_URL = (
+    "https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/resolve/main"
+)
 
 
 def parse_args():
@@ -26,23 +41,9 @@ def parse_args():
     return parser.parse_args()
 
 
-langs = [
-    "da",
-    "is",
-    "nn-NO",
-    "sv-SE",
-]
-
-ROOT_FOLDER = "data/datasets/common_voice_17_0"
-
-ROOT_URL = (
-    "https://huggingface.co/datasets/mozilla-foundation/common_voice_17_0/resolve/main"
-)
-
-
 def untar(dataset_dir):
     """Example code to decompress all the downloaded tar files"""
-    tar_files = glob(f"data/{dataset_dir}/*/*/audio/*/*.tar")
+    tar_files = glob(f"data/{dataset_dir}/common_voice_17_0/*/*/audio/*/*.tar")
     for tf in tqdm(tar_files):
         tf_parent = str(Path(tf).parent)
         commands = (
