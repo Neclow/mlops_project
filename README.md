@@ -4,7 +4,7 @@
 
 ```bash
 conda env create -f env.yml
-conda activate phylaudio
+conda activate audio
 pip install -r extra_requirements.txt
 ```
 
@@ -12,9 +12,15 @@ pip install -r extra_requirements.txt
 
 ### Data quality assurance
 
+Uses Great Expectations + custom scripts.
+
 Follow the ```data_quality.ipynb``` notebook.
 
 ### Model development
+
+Uses Weights & Biases.
+
+To train a classifier based on a pre-trained feature extractor:
 
 ```bash
 python -m core.train nort3160 NeMo_ambernet speech --n-epochs 3 --max-duration 10 --device cuda:1
