@@ -3,9 +3,10 @@
 ## Dependencies
 
 ```bash
-conda env create -f env.yml
-conda activate audio
-pip install -r extra_requirements.txt
+conda create -name audio python=3.10.10
+pip install -r requirements.txt
+pip install fairseq --no-deps
+pip install bitarray sacrebleu omegaconf hydra-core
 ```
 
 ## Project components

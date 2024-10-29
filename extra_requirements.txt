@@ -1,5 +1,0 @@
-fairseq --install-option='--no-deps'
-bitarray
-sacrebleu
-omegaconf
-hydracore

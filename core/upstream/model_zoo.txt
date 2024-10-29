@@ -3,4 +3,5 @@ facebook/mms-lid-126
 facebook/mms-lid-4017
 NeMo_ambernet
 speechbrain/lang-id-voxlingua107-ecapa
-whisper_small
+whisper_base
+whisper_tiny

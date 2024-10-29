@@ -11,8 +11,6 @@ class MLP(nn.Module):
     def __init__(self, emb_dim, out_dim):
         super().__init__()
 
-        # TODO: add num_layers as arg for classifier
-
         self.emb_dim = emb_dim
 
         self.out_dim = out_dim
