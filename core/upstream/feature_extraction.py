@@ -1,3 +1,5 @@
+"""Audio feature extractors"""
+
 import logging
 
 from abc import ABC, abstractmethod
@@ -15,37 +17,55 @@ logging.getLogger("nemo_logger").setLevel(logging.ERROR)
 
 
 class BaseFeatureExtractor(nn.Module, ABC):
+    """Base audio feature extractor
+
+    Parameters
+    ----------
+    model_id : str
+        Model ID (see model_ids)
+    """
+
     def __init__(self, model_id):
         super().__init__()
 
         self.model_id = model_id
 
     @abstractmethod
-    def load(self, cache_dir):
+    def load(self, cache_dir=None):
+        """Load a pre-trained model
+
+        Parameters
+        ----------
+        cache_dir : str, optional
+            Path to the folder where cached files are stored, by default None
+        """
         raise NotImplementedError
 
     @abstractmethod
     def forward(self, x):
+        """Forward pass
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input of size (B, T)
+            B: batch size
+            T: sample length
+        """
         raise NotImplementedError
 
 
-def _load_xlsr(
-    model_id,
-    finetuned=True,
-    cache_dir=None,
+def _load_finetuned_xlsr(
+    model,
     file="/home/common/speech_phylo/models/xlsr_300m_voxlingua107_ft.pt",
 ):
     """
-    Load the Wav2Vec2Model for speech feature extraction.
+    Load a finetuned Wav2Vec2Model for speech feature extraction.
 
     Parameters
     ----------
     model_id : str
         Model ID (see model_ids)
-    finetuned : bool, optional
-        Specifies whether to load a finetuned model, by default True.
-    cache_dir : str, optional
-        Path to the folder where cached files are stored, by default None
     file : str, optional
         Path to fine-tuned checkpoint
         (from https://github.com/facebookresearch/fairseq/blob/main/examples/wav2vec/xlsr/README.md)
@@ -55,42 +75,55 @@ def _load_xlsr(
     model_ : Wav2Vec2Model
         The loaded Wav2Vec2Model for speech feature extraction.
     """
-    model_ = Wav2Vec2Model.from_pretrained(model_id, cache_dir=cache_dir)
+    state_dict = torch.load(file)
 
-    model_.freeze_feature_encoder()
+    tmp = {
+        k.replace("w2v_encoder.w2v_model.", "")
+        .replace("mask_emb", "masked_spec_embed")
+        .replace(".0.weight", ".conv.weight")
+        .replace(".0.bias", ".conv.bias")
+        .replace("fc1", "feed_forward.intermediate_dense")
+        .replace("fc2", "feed_forward.output_dense")
+        .replace("self_attn", "attention")
+        .replace("attention_layer_norm", "layer_norm")
+        .replace(".2.1", ".layer_norm")
+        .replace("post_extract_proj", "feature_projection.projection")
+        .replace("pos_conv", "pos_conv_embed")
+        .replace("embed.conv.weight", "embed.conv.parametrizations.weight")
+        .replace("weight_g", "weight.original0")
+        .replace("weight_v", "weight.original1"): v
+        for (k, v) in state_dict["model"].items()
+    }
 
-    if finetuned:
-        state_dict = torch.load(file)
+    tmp["feature_projection.layer_norm.bias"] = tmp.pop("layer_norm.bias")
+    tmp["feature_projection.layer_norm.weight"] = tmp.pop("layer_norm.weight")
 
-        tmp = {
-            k.replace("w2v_encoder.w2v_model.", "")
-            .replace("mask_emb", "masked_spec_embed")
-            .replace(".0.weight", ".conv.weight")
-            .replace(".0.bias", ".conv.bias")
-            .replace("fc1", "feed_forward.intermediate_dense")
-            .replace("fc2", "feed_forward.output_dense")
-            .replace("self_attn", "attention")
-            .replace("attention_layer_norm", "layer_norm")
-            .replace(".2.1", ".layer_norm")
-            .replace("post_extract_proj", "feature_projection.projection")
-            .replace("pos_conv", "pos_conv_embed")
-            .replace("embed.conv.weight", "embed.conv.parametrizations.weight")
-            .replace("weight_g", "weight.original0")
-            .replace("weight_v", "weight.original1"): v
-            for (k, v) in state_dict["model"].items()
-        }
+    missing_keys, unexpected_keys = model.load_state_dict(tmp, strict=False)
 
-        tmp["feature_projection.layer_norm.bias"] = tmp.pop("layer_norm.bias")
-        tmp["feature_projection.layer_norm.weight"] = tmp.pop("layer_norm.weight")
+    print(f"missing keys: {missing_keys}\n" f"unexpec keys: {unexpected_keys}")
 
-        missing_keys, unexpected_keys = model_.load_state_dict(tmp, strict=False)
-
-        print(f"missing keys: {missing_keys}\n" f"unexpec keys: {unexpected_keys}")
-
-    return model_
+    return model
 
 
+# NOTE: this approach is not 100% correct, but works OK for a prototype
+# Why? core.transforms will apply padding, but this will not be reflected in the attention masks
+# (which are ignored in this implementation)
+# Solution: use the AutoFeatureExtractor to get attention masks
+# so that the transformer does not apply attention to padding zeros
 class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
+    """
+    Huggingface/Transformers feature extractor
+
+    Parameters
+    ----------
+    model_id : str
+        Model ID (see model_ids)
+    cache_dir : str, optional
+        Path to the folder where cached files are stored, by default None
+    finetuned : bool, optional
+        Whether to load a LID-finetuned XLS-R or not, by default False
+    """
+
     def __init__(
         self,
         model_id,
@@ -107,20 +140,23 @@ class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
         self.load(cache_dir)
 
     def load(self, cache_dir=None):
-        if "xls-r" in self.model_id:
-            feature_extractor = _load_xlsr(
-                self.model_id, finetuned=self.finetuned, cache_dir=cache_dir
-            )
-
-            feature_extractor.freeze_feature_encoder()
-            emb_dim = 1024
-        elif "mms" in self.model_id:
+        if "xls-r" in self.model_id or "mms" in self.model_id:
             feature_extractor = Wav2Vec2Model.from_pretrained(
-                self.model_id, cache_dir=cache_dir
+                self.model_id,
+                cache_dir=cache_dir,
+                torch_dtype=self.dtype,
+                # attn_implementation="flash_attention_2",
             )
 
+            if self.finetuned:
+                feature_extractor = _load_finetuned_xlsr(feature_extractor)
+
             feature_extractor.freeze_feature_encoder()
-            emb_dim = 1280
+
+            if "mms" in self.model_id:
+                emb_dim = 1280
+            else:
+                emb_dim = 1024
         else:
             raise ValueError(f"Unknown model ID: {self.model_id}")
 
@@ -132,6 +168,17 @@ class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
 
 
 class NeMoFeatureExtractor(BaseFeatureExtractor):
+    """
+    NeMo feature extractor
+
+    Parameters
+    ----------
+    model_id : str
+        Model ID (see model_ids)
+    cache_dir : str, optional
+        Path to the folder where cached files are stored, by default None
+    """
+
     def __init__(self, model_id, cache_dir=None):
         super().__init__(model_id)
 
@@ -142,7 +189,7 @@ class NeMoFeatureExtractor(BaseFeatureExtractor):
 
         self.load(cache_dir)
 
-    def load(self, cache_dir):
+    def load(self, cache_dir=None):
         if self.model_id == "NeMo_ambernet":
             model_name = self.model_id.split("_")[-1]
 
@@ -167,11 +214,23 @@ class NeMoFeatureExtractor(BaseFeatureExtractor):
         )
 
         # Output shape: B x D
-
         return emb
 
 
 class SpeechbrainFeatureExtractor(BaseFeatureExtractor):
+    """
+    Speechbrain feature extractor
+
+    Parameters
+    ----------
+    model_id : str
+        Model ID (see model_ids)
+    cache_dir : str, optional
+        Path to the folder where cached files are stored, by default None
+    device : str, optional
+        Device on which torch tensors will be loaded, by default 'cpu'
+    """
+
     def __init__(
         self,
         model_id,
@@ -201,6 +260,17 @@ class SpeechbrainFeatureExtractor(BaseFeatureExtractor):
 
 
 class WhisperFeatureExtractor(BaseFeatureExtractor):
+    """
+    Whisper feature extractor
+
+    Parameters
+    ----------
+    model_id : str
+        Model ID (see model_ids)
+    cache_dir : str, optional
+        Path to the folder where cached files are stored, by default None
+    """
+
     def __init__(
         self,
         model_id,
@@ -327,7 +397,7 @@ class WhisperFeatureExtractor(BaseFeatureExtractor):
 
 
 def load_feature_extractor(
-    model_id, cache_dir=None, device="cpu", finetuned=True
+    model_id, cache_dir=None, finetuned=False, device="cpu"
 ) -> BaseFeatureExtractor:
     """Load a feature extractor (to be used downstream)
 
@@ -340,7 +410,7 @@ def load_feature_extractor(
     device : str, optional
         Device on which a torch.Tensor is or will be allocated, by default "cpu"
     finetuned : bool, optional
-        Whether to use a fine-tuned XLS-R or not, by default True
+        Whether to use a fine-tuned XLS-R or not, by default False
 
     Returns
     -------
