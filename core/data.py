@@ -93,6 +93,9 @@ class AudioDataset(BaseDataset):
         for ext in exts:
             self.audio_file_list.extend(glob(f"{base_pattern}/*.{ext}", recursive=True))
 
+        if len(self.audio_file_list) == 0:
+            raise FileNotFoundError("No files found. Check `self.data_dir`.")
+
     def __len__(self):
         return len(self.audio_file_list)
 

@@ -13,3 +13,11 @@ RANDOM_STATE: Final = 42
 SAMPLE_RATE: Final = 16000
 # Weight decay
 WEIGHT_DECAY: Final = 1e-3
+
+MODEL_IDS: Final = [
+    "facebook/wav2vec2-xls-r-300m",
+    "facebook/mms-lid-126",
+    "speechbrain/lang-id-voxlingua107-ecapa",
+    "whisper_tiny",
+    "whisper_base",
+]

@@ -89,6 +89,9 @@ def parse_args():
         help="Number of training epcohs",
     )
     parser.add_argument(
+        "--log-model", action="store_true", help="Log the model as an artifact in W&B"
+    )
+    parser.add_argument(
         "--data-dir",
         type=str,
         default="data",
@@ -184,7 +187,9 @@ def main():
     eval_dir = f"{args.data_dir}/eval"
     os.makedirs(eval_dir, exist_ok=True)
     wandb_logger = WandbLogger(
-        project=f"mlops_project_eval_{args.dataset}", save_dir=eval_dir
+        project=f"mlops_project_eval_{args.dataset}",
+        save_dir=eval_dir,
+        log_model=args.log_model,
     )
 
     wandb_logger.experiment.config.update(

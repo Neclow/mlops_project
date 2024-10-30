@@ -144,7 +144,7 @@ class HuggingfaceFeatureExtractor(BaseFeatureExtractor):
             feature_extractor = Wav2Vec2Model.from_pretrained(
                 self.model_id,
                 cache_dir=cache_dir,
-                torch_dtype=self.dtype,
+                # torch_dtype=torch.float16,
                 # attn_implementation="flash_attention_2",
             )
 
