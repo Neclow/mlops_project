@@ -120,10 +120,7 @@ class LightningMLP(LightningModule):
         # Forward pass
         X_batch, y_batch = batch["input"].data, batch["label"]
 
-        with torch.no_grad():
-            emb_batch = self.feature_extractor(X_batch)
-
-        o_batch = self.classifier(emb_batch)
+        o_batch = self.logits(X_batch)
 
         # Compute losses
         loss = self.loss_fn(o_batch, y_batch)
@@ -132,6 +129,14 @@ class LightningMLP(LightningModule):
         score = metric(o_batch, y_batch)
 
         return loss, score
+
+    def logits(self, X_batch):
+        with torch.no_grad():
+            emb_batch = self.feature_extractor(X_batch)
+
+        logits = self.classifier(emb_batch)
+
+        return logits
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(

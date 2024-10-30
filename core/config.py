@@ -17,6 +17,7 @@ WEIGHT_DECAY: Final = 1e-3
 MODEL_IDS: Final = [
     "facebook/wav2vec2-xls-r-300m",
     "facebook/mms-lid-126",
+    "NeMo_ambernet",
     "speechbrain/lang-id-voxlingua107-ecapa",
     "whisper_tiny",
     "whisper_base",
