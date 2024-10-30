@@ -196,3 +196,7 @@ lightning_logs/
 
 # Datasets
 data/nort3160
+
+# Notebooks
+notebooks/*
+!notebooks/*.ipynb

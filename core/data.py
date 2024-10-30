@@ -69,6 +69,17 @@ class BaseDataset(Dataset):
 
 
 class AudioDataset(BaseDataset):
+    """Dataset for audio samples
+
+    Parameters
+    ----------
+    processor : core.upstream.AudioProcessor
+        an object with a ```process``` function
+    max_duration : float
+        Maximum audio duration in seconds
+    ext : tuple, optional
+        Allowed audio file extensions, by default ("wav", "mp3")
+    """
 
     def __init__(
         self,
