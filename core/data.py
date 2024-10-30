@@ -97,7 +97,7 @@ class AudioDataset(BaseDataset):
         else:
             self.max_length = int(max_duration * self.processor.sr)
 
-        base_pattern = f"{self.data_dir}/**/audio/{self.subset}"
+        base_pattern = f"{self.data_dir}/{self.dataset}/**/audio/{self.subset}"
 
         self.audio_file_list = []
 
@@ -111,13 +111,15 @@ class AudioDataset(BaseDataset):
         return len(self.audio_file_list)
 
     def __getitem__(self, idx):
-        # Path: data/datasets/subdataset/language_code/language_code/audio/subset/fname.wav
+        # pattern: data_dir/dataset/subdataset/language/language/audio/subset/fname.ext
         wav_path = self.audio_file_list[idx]
 
         x = self.processor(wav_path)
 
         # pylint: disable=unused-variable
-        subdataset, language_code = wav_path.split("/")[2:4]
+        subdataset, language_code = wav_path.replace(
+            f"{self.data_dir}/{self.dataset}/", ""
+        ).split(os.sep)[:2]
 
         language = self.language_metadata.query(
             f"`{subdataset}` == @language_code"
