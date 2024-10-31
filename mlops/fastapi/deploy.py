@@ -24,7 +24,8 @@ print(f"Found {len(run_ids)} with model_id: {model_id}. Selecting the first run.
 
 assert len(run_ids) > 0
 
-my_cache_dir = "/home/common/speech_phylo/models"
+# my_cache_dir = "/home/common/speech_phylo/models"
+my_cache_dir = "/Users/lz50rg/Dev/mlops_project/models"
 if not os.path.isdir(my_cache_dir):
     my_cache_dir = None  # Or enter your cache dir here
 

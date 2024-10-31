@@ -3,7 +3,7 @@
 ## Dependencies
 
 ```bash
-conda create -name audio python=3.10.10
+conda create --name audio python=3.10.10
 pip install -r requirements.txt
 pip install fairseq --no-deps
 pip install bitarray sacrebleu omegaconf hydra-core
@@ -44,9 +44,9 @@ TODO (Evidently)
 Run the ```prepare``` scripts in ```scripts```:
 
 ```bash
-python -m prepare_common_voice_17_0 nort3160
-python -m prepare_fleurs nort3160
-python -m prepare_ravnursson nort3160
+python -m script.prepare_common_voice_17_0 nort3160
+python -m script.prepare_fleurs nort3160
+python -m script.prepare_ravnursson nort3160
 ```
 
 ### Languages

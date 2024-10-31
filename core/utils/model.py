@@ -18,7 +18,7 @@ def load_model_from_run_id(
 
     run = api.run(f"neclow/mlops_project_eval_nort3160/{run_id}")
 
-    ckpt = torch.load(f"{save_dir}/{project}/{run_id}/checkpoints/last.ckpt")
+    ckpt = torch.load(f"{save_dir}/{project}/{run_id}/checkpoints/last.ckpt", map_location=device)
 
     state_dict = ckpt["state_dict"]
 
