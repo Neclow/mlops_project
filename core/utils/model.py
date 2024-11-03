@@ -9,36 +9,40 @@ from ..upstream import load_feature_extractor, load_processor
 
 
 def load_model_from_run_id(
-    run_id, save_dir, project, cache_dir=None, device="cpu", **kwargs
+    run_id, save_dir, entity, project, cache_dir=None, device="cpu", **kwargs
 ):
     # save_dir = "../data/eval"
     # project = "mlops_project_eval_nort3160"
 
     api = wandb.Api()
 
-    run = api.run(f"neclow/mlops_project_eval_nort3160/{run_id}")
+    run = api.run(f"{entity}/{project}/{run_id}")
+    model_id = run.config["model_id"]
 
-    ckpt = torch.load(f"{save_dir}/{project}/{run_id}/checkpoints/last.ckpt", map_location=device)
-
-    state_dict = ckpt["state_dict"]
-
-    processor = load_processor(
-        run.config["model_id"], sr=SAMPLE_RATE, cache_dir=cache_dir
-    )
+    # Load processor and feature extractor (without run weights)
+    processor = load_processor(model_id, sr=SAMPLE_RATE, cache_dir=cache_dir)
 
     feature_extractor = load_feature_extractor(
-        run.config["model_id"], cache_dir=cache_dir, device=device, **kwargs
+        model_id, cache_dir=cache_dir, device=device, **kwargs
     )
 
+    # Load checkpoint
+    ckpt = torch.load(
+        f"{save_dir}/{project}/{run_id}/checkpoints/last.ckpt", map_location=device
+    )
+
+    # Load Lightning Module
+    hparams = ckpt["hyper_parameters"]
     lit_mlp = LightningMLP(
         feature_extractor=feature_extractor,
-        num_classes=ckpt["hyper_parameters"]["num_classes"],
-        loss_fn=ckpt["hyper_parameters"]["loss_fn"],
-        lr=ckpt["hyper_parameters"]["lr"],
-        weight_decay=ckpt["hyper_parameters"]["weight_decay"],
+        num_classes=hparams["num_classes"],
+        loss_fn=hparams["loss_fn"],
+        lr=hparams["lr"],
+        weight_decay=hparams["weight_decay"],
     )
 
-    # We have restored our model
+    # Restore the model
+    state_dict = ckpt["state_dict"]
     lit_mlp.load_state_dict(state_dict)
 
     return processor, lit_mlp

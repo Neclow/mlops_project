@@ -24,9 +24,10 @@ print(f"Found {len(run_ids)} with model_id: {model_id}. Selecting the first run.
 
 assert len(run_ids) > 0
 
+my_cache_dir = input("Enter your cache directory (press Enter for None): ")
 # my_cache_dir = "/home/common/speech_phylo/models"
-my_cache_dir = "/Users/lz50rg/Dev/mlops_project/models"
-if not os.path.isdir(my_cache_dir):
+# my_cache_dir = "/Users/lz50rg/Dev/mlops_project/models"
+if len(my_cache_dir) == 0 or not os.path.isdir(my_cache_dir):
     my_cache_dir = None  # Or enter your cache dir here
 
 if torch.cuda.is_available():
@@ -37,6 +38,7 @@ else:
 print("Loading processor and model...")
 processor, model = load_model_from_run_id(
     run_ids[0],
+    entity=entity,
     save_dir=save_dir,
     project=project,
     cache_dir=my_cache_dir,
