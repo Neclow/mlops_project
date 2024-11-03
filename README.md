@@ -15,7 +15,15 @@ pip install bitarray sacrebleu omegaconf hydra-core
 
 Uses Great Expectations + custom scripts.
 
-Follow the ```data_quality.ipynb``` notebook.
+Follow the ```notebooks/ata_quality.ipynb``` notebook.
+
+Great Expectations outputs are available at ```mlops/great_expectations```.
+
+To reproduce the speech quality assessment estimates, use:
+
+```bash
+python -m scripts.squim nort3160
+```
 
 ### Model development
 
@@ -27,15 +35,25 @@ To train a classifier based on a pre-trained feature extractor:
 python -m core.train nort3160 NeMo_ambernet speech --n-epochs 3 --max-duration 10 --device cuda:1
 ```
 
-Or follow the ```model_development.ipynb``` notebook.
+Or follow the ```notebooks/model_development.ipynb``` notebook.
+
+A checkpoint for Titanet-LID is available at: <https://api.wandb.ai/artifactsV2/default/neclow/QXJ0aWZhY3Q6MTMwMDg1NDU0MQ%3D%3D/5f77a00d041aae409ae84c6cd334c011/last.ckpt>
 
 ### Model deployment
 
-TODO (FastAPI)
+In a run, go to the root of the project, and run:
+
+```bash
+uvicorn mlops.fastapi.deploy:app --reload
+```
+
+Source code is available at ```mlops/fastapi/deploy.py```
+
+Or follow the ```notebooks/model_deployment.ipynb``` notebook.
 
 ### Monitoring and logging
 
-TODO (Evidently)
+Follow the ```notebooks/model_monitoring.ipynb``` notebook.
 
 ## Data
 
@@ -58,3 +76,8 @@ These files were built semi-manually using information from the datasets, Glotto
 ### Stats
 
 Statistics on the used datasets: sizes, durations, and speech quality
+
+## Reports
+
+MLOps_Project.pdf: assignment report
+MLOps_Project.pptx: prototype slides
