@@ -79,5 +79,5 @@ Statistics on the used datasets: sizes, durations, and speech quality
 
 ## Reports
 
-MLOps_Project.pdf: assignment report
-MLOps_Project.pptx: prototype slides
+report.pdf: assignment report
+prototype_slides.pptx: prototype slides
